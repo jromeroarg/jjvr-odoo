@@ -83,7 +83,7 @@ class AccountVatLedger(models.Model):
             if invoice.currency_id.id == invoice.company_id.currency_id.id:
                 currency_rate = 1
             else:
-                currency_rate = invoice.l10n_ar_currency_rate
+                currency_rate = invoice.currency_rate
             for mvt in invoice.vat_tax_ids:
                 if mvt.tax_id.tax_group_id.type == 'withholding':
                     move_tax = mvt
