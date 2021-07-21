@@ -76,8 +76,8 @@ class AccountVatLedger(models.Model):
         lines = []
         self.ensure_one()
         for invoice in self.invoice_ids:
-            if invoice.state != 'posted':
-                continue
+            # if invoice.state != 'posted':
+            #     continue
             move_tax = None
             vat_amount = 0
             if invoice.currency_id.id == invoice.company_id.currency_id.id:
