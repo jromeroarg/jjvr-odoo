@@ -2,8 +2,8 @@
 # For copyright and license notices, see __manifest__.py file in module root
 # directory
 ##############################################################################
-from odoo import models, fields, api, _
-from odoo.exceptions import ValidationError
+from odoo import models, fields, api, exceptions, _
+# from odoo.exceptions import ValidationError
 from ast import literal_eval
 from datetime import datetime, date
 import base64
@@ -76,8 +76,6 @@ class AccountVatLedger(models.Model):
         lines = []
         self.ensure_one()
         for invoice in self.invoice_ids:
-            # if invoice.state != 'posted':
-            #     continue
             move_tax = None
             vat_amount = 0
             if invoice.currency_id.id == invoice.company_id.currency_id.id:
@@ -89,8 +87,6 @@ class AccountVatLedger(models.Model):
                     move_tax = mvt
                 if mvt.tax_id.tax_group_id.type == 'tax':
                     vat_amount += mvt.amount
-            if not move_tax:
-                continue
             v = ''
             # Campo 1 - tipo de operacion
             v = '2'
@@ -114,7 +110,7 @@ class AccountVatLedger(models.Model):
                 elif invoice.document_type_id.code == '6':
                     v+= 'B'
             # Campo 6
-            inv_number = invoice.name[5:].replace('-','')
+            inv_number = invoice.document_number[5:].replace('-','')
             v+= inv_number.zfill(16)
             # Campo 7
             # v+= invoice.date_invoice.strftime("%d/%m/%Y")
@@ -133,6 +129,9 @@ class AccountVatLedger(models.Model):
             # Campo 11
             # v+= invoice.partner_id.vat.zfill(11)
 
+            
+            if not invoice.partner_id.main_id_number:
+                continue
             v+= invoice.partner_id.main_id_number.zfill(11)
 
             # Campo 12
