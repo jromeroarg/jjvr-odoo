@@ -13,6 +13,14 @@
                     <page string="AGIP" name="agip">
                         <button name="compute_agip_data" type="object" string="Generar Informacion" />
                         <group>
+                            <group>
+                                <field name="account_tax_per_id"/>
+                            </group>
+                            <group>
+                                <field name="account_tax_ret_id"/>
+                            </group>
+                        </group>
+                        <group>
                             <field name="agip_vouchers_filename" invisible="1"/>
                             <group>
                                 <field name="agip_vouchers_file" filename="agip_vouchers_filename"/>

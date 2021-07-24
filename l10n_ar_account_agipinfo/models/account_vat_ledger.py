@@ -26,6 +26,18 @@ class AccountVatLedger(models.Model):
     agip_vouchers_filename = fields.Char(
         compute='_compute_agip_files',
     )
+    account_tax_per_id = fields.Many2one(
+        comodel_name='account.tax',
+        relation='account_vat_ledger_account_tax_per_rel',
+        string="Impuesto Percepcion",
+        domain=[('type_tax_use','=','sale')]
+    )
+    account_tax_ret_id = fields.Many2one(
+        comodel_name='account.tax',
+        relation='account_vat_ledger_account_tax_ret_rel',
+        string="Impuesto Retencion",
+        domain=[('type_tax_use','=','supplier')]
+    )
 
     def format_amount(self, amount, padding=15, decimals=2, invoice=False):
         # get amounts on correct sign despite conifiguration on taxes and tax
@@ -78,15 +90,19 @@ class AccountVatLedger(models.Model):
         for invoice in self.invoice_ids:
             move_tax = None
             vat_amount = 0
+            cantidad = 0
             if invoice.currency_id.id == invoice.company_id.currency_id.id:
                 currency_rate = 1
             else:
                 currency_rate = invoice.currency_rate
-            for mvt in invoice.vat_tax_ids:
-                if mvt.tax_id.tax_group_id.type == 'withholding':
+            for mvt in invoice.tax_line_ids:
+                cantidad += 1
+                if mvt.tax_id.id == self.account_tax_per_id.id:
                     move_tax = mvt
                 if mvt.tax_id.tax_group_id.type == 'tax':
                     vat_amount += mvt.amount
+            if not move_tax:
+                continue
             v = ''
             # Campo 1 - tipo de operacion
             v = '2'
