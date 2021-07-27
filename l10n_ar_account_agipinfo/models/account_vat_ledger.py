@@ -96,7 +96,6 @@ class AccountVatLedger(models.Model):
             else:
                 currency_rate = invoice.currency_rate
             for mvt in invoice.tax_line_ids:
-                cantidad += 1
                 if mvt.tax_id.id == self.account_tax_per_id.id:
                     move_tax = mvt
                 if mvt.tax_id.tax_group_id.type == 'tax':
