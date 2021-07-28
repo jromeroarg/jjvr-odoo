@@ -98,96 +98,217 @@ class AccountVatLedger(models.Model):
             for mvt in invoice.tax_line_ids:
                 if mvt.tax_id.id == self.account_tax_per_id.id:
                     move_tax = mvt
-                if mvt.tax_id.tax_group_id.type == 'tax':
+                if (mvt.tax_id.tax_group_id.type == 'tax') and (mvt.tax_id.tax_group_id.afip_code > 0):
                     vat_amount += mvt.amount
             if not move_tax:
                 continue
+
+            #Inicio del registro
             v = ''
-            # Campo 1 - tipo de operacion
+
+            # Campo 1 - Tipo de Operación
+            # 1: Retención
+            # 2: Percepción
             v = '2'
-            # Campo 2 - Norma
+
+            # Campo 2 - Código de Norma
             v+= '014'
-            # Campo 3 - Fecha percepcion
+
+            # Campo 3 - Fecha de retención/percepción - Formato: dd/mm/aaaa
             # v+= invoice.date_invoice.strftime("%d/%m/%Y")
-            
             aux1=invoice.date_invoice
             aux1=datetime.strptime(aux1, '%Y-%m-%d')
             v+= aux1.strftime("%d/%m/%Y")
 
-            # Campo 4 - Tipo Comprobante
+            # Campo 4 - Tipo de comprobante origen de la retención
+            # Si Tipo de Operación =1 : 01 . Factura
+            # 02 . Nota de Débito
+            # 03 . Orden de Pago
+            # 04 . Boleta de Depósito
+            # 05 . Liquidación de pago
+            # 06 . Certificado de obra
+            # 07 . Recibo
+            # 08 . Cont de Loc de Servic.
+            # 09 . Otro ComprobanteTipo Comprobante 
+            # Si Tipo de Operación =2: 
+            # 01 . Factura
+            # 09 . Otro Comprobante
             v+= '01'
-            # Campo 5 - 
-            if invoice.partner_id.afip_responsability_type_id.code == '4':
-                v+= 'C'
-            else:
-                if invoice.document_type_id.code == '1':
-                    v+= 'A'
-                elif invoice.document_type_id.code == '6':
-                    v+= 'B'
-            # Campo 6
-            inv_number = invoice.document_number[5:].replace('-','')
-            v+= inv_number.zfill(16)
-            # Campo 7
-            # v+= invoice.date_invoice.strftime("%d/%m/%Y")
 
+            # Campo 5 - Letra del Comprobante
+            # Operación Retenciones
+            # Si Agente=R.I y Suj.Ret = R.I : Letra= A,M,B
+            # Si Agente=R.I y Suj.Ret = Exento : Letra= C
+            # Si Agente=R.I y Suj.Ret = Monot. : Letra= C
+            # Si Agente=Exento y Suj.Ret=R.I : Letra= B
+            # Si Agente=Exento y Suj.Ret=Exento : Letra= C
+            # Si Agente=Exento y Suj.Ret=Monot. : Letra= C
+            # Operación Percepción
+            # Si Agente=R.I y Suj.Ret = R.I : Letra= A,M,B
+            # Si Agente=R.I y Suj.Ret = Exento : Letra= B
+            # Si Agente=R.I y Suj.Ret = Monot. : Letra= B
+            # Si Agente=R.I y Suj.Ret = No Cat. : Letra= B
+            # Si Agente=Exento y Suj.Ret=R.I : Letra=C
+            # Si Agente=Exento y Suj.Ret=Exento : Letra= C
+            # Si Agente=Exento y Suj.Ret=Monot. : Letra= C
+            # Si Agente=Exento y Suj.Ret=No Cat. : Letra=C
+            # Si Tipo Comprobante = (01,06,07): A,B,C,M 
+            # sino 1 dígito blanco
+            # jjvr - Así estaba en el original 
+            # if invoice.partner_id.afip_responsability_type_id.code == '4':
+            #     v+= 'C'
+            # else:
+            #     if invoice.document_type_id.code == '1':
+            #         v+= 'A'
+            #     elif invoice.document_type_id.code == '6':
+            #         v+= 'B'
+            # jjvr - Se decide tomar la letra del documento de AFIP para percepcion
+            inv_letter = invoice.document_type_id.document_letter_id.name
+            v+= inv_letter
+
+            # Campo 6
+            inv_number = invoice.document_number.replace('-','0')
+            v+= inv_number.zfill(16)
+
+            # Campo 7 - Fecha del comprobante - Formato: dd/mm/aaaa
             aux1=invoice.date_invoice
             aux1=datetime.strptime(aux1, '%Y-%m-%d')
             v+= aux1.strftime("%d/%m/%Y")
 
-            # Campo 8
-            value = int(mvt.amount)
-            v+= str(value).zfill(16)
-            # Campo 9
-            v+= ' ' * 16
-            # Campo 10
-            v+= '3'
-            # Campo 11
-            # v+= invoice.partner_id.vat.zfill(11)
+            # Campo 8 - Monto del comprobante total con impuestos incluidos
+            # Decimales: 2
+            # Máximo: 9999999999999,99
+            total_amount = invoice.amount_total*currency_rate
+            v+= str(round(total_amount,2)).replace('.',',').zfill(16)
 
+            # Campo 9 - Nro de certificado propio
+            # Si Tipo de Operación =1 se carga el Nro de certificado o blancos
+            # Si Tipo de Operación = 2 se completa con blancos.
+            v+= ' ' * 16
+
+            # Campo 10 - Tipo de documento del Retenido
+            # 3: CUIT
+            # 2: CUIL
+            # 1: CDI
+            m_categ_id_code = invoice.partner_id.main_id_category_id.code 
+            if m_categ_id_code == "CUIT":
+                tip_doc_ret='3'
+            elif m_categ_id_code == "CUIL":
+                tip_doc_ret='2'
+            elif m_categ_id_code == "CDI":
+                tip_doc_ret='2'
+            else:
+                tip_doc_ret=''
+            v+= tip_doc_ret
             
-            if not invoice.partner_id.main_id_number:
-                continue
+            # Campo 11 - Nro de documento del Retenido
+            # Mayor a 0(cero)
+            # Máximo: 99999999999            
             v+= invoice.partner_id.main_id_number.zfill(11)
 
-            # Campo 12
-            if invoice.partner_id.gross_income_type == 'local':
-                v+= '1'
-            elif invoice.partner_id.gross_income_type == 'multilateral':
-                v+= '2'
-            elif invoice.partner_id.gross_income_type == 'no_liquida':
-                v+= '4'
+            # Campo 12 - Situación IB del Retenido
+            # 1: Local 
+            # 2: Convenio Multilateral
+            # 4: No inscripto 
+            # 5: Reg.Simplificado
+            # Si Tipo de Documento=3: Situación IB del Retenido=(1,2,4,5)
+            # Si Tipo de Documento=(1,2): Situación IB del Retenido=4
+            p_gross_income_type=invoice.partner_id.gross_income_type
+            sit_ib_ret=' '
+            if tip_doc_ret == '3':
+                if p_gross_income_type == 'local':
+                    sit_ib_ret='1'
+                elif p_gross_income_type == 'multilateral':
+                    sit_ib_ret='2'
+                elif p_gross_income_type == 'no_liquida':
+                    sit_ib_ret='4'
+                else:
+                    sit_ib_ret= '5'
             else:
-                v+= '4'
-            # Campo 13
-            v+= str(invoice.partner_id.gross_income_number).zfill(11)
-            # Campo 14
+                sit_ib_ret='4'
+            v+= sit_ib_ret
+                
+            # Campo 13 - Nro Inscripción IB del Retenido
+            # Si Situación IB del Retenido=4 : 00000000000
+            # Se validará digito verificador.
+            # 1.Local: 8 digítos Número + 2 dígitos Verificador
+            # 2. Conv.Multilateral: 3 dígitos Jurisdicción + 6 dígitos Número + 1 Dígito Verificador
+            # 5. Reg.Simplificado: 2 dígitos + 8 dígitos + 1 dígito verificador
+            nro_inscr_ret=''
+            if sit_ib_ret == '4':
+                nro_inscr_ret='00000000000'
+            elif not invoice.partner_id.gross_income_number:
+                nro_inscr_ret=invoice.partner_id.main_id_number
+            else:
+                nro_inscr_ret=str(invoice.partner_id.gross_income_number).zfill(11)                
+            v+= nro_inscr_ret
+
+            # Campo 14 - Situación frente al IVA del Retenido
+            # 1 - Responsable Inscripto
+            # 3 - Exento
+            # 4 - Monotributo
+            sit_iva_ret=''
             if invoice.partner_id.afip_responsability_type_id.code == '1':
-                v+= '1'
+                sit_iva_ret= '1'
             elif invoice.partner_id.afip_responsability_type_id.code == '4':
-                v+= '3'
+                sit_iva_ret= '3'
             else:
-                v+= '4'
-            # Campo 15
+                sit_iva_ret= '4'
+            v+=sit_iva_ret
+
+            # Campo 15 - Razón Social del Retenido
             lastname = invoice.partner_id.name[:30]
             lastname = lastname.ljust(30)
             v+= lastname
-            # Campo 16
-            v+= '0'.zfill(16)
-            # Campo 17
-            #vat_amount = int(vat_amount * 100)
-            v+= str(round(vat_amount * currency_rate,2)).replace(',','.').zfill(16)
-            # Campo 18
+
+            # Campo 16 - Importe otros conceptos
+            # Decimales: 2
+            # Mínimo: 0
+            # Máximo: 9999999999999,99
+            # Importe Total del comprobante menos los conceptos de IVA
+            imp_otr_vat=total_amount-vat_amount*currency_rate
+            v+= str(round(imp_otr_vat,2)).replace('.',',').zfill(16)
+
+            # Campo 17 - Importe IVA
+            # Decimales: 2
+            # Mínimo: 0
+            # Máximo: 9999999999999,99
+            # Solo completar si Letra del Comprobante = (A,M)
+            if (inv_letter == 'A') or (inv_letter == 'M'):
+                v+= str(round(vat_amount * currency_rate,2)).replace('.',',').zfill(16)
+            else:
+                v+= '0000000000000,00'
+
+
+            # Campo 18 - Monto Sujeto a Retención/ Percepción
+            # Decimales: 2
+            # Mínimo: 0
+            # Máximo: 9999999999999,99
+            # Monto Sujeto a Retención/ Percepción= (Monto del comprobante - Importe Iva - Importe otros conceptos)
             base = mvt.base * currency_rate
             v+= str(round(base,2)).replace('.',',').zfill(16)
-            # Campo 19
+
+            # Campo 19 -Alícuota
+            # Decimales: 2
+            # Mínimo: 0
+            # Máximo: 99,99
+            # Según el Tipo de Operación,Código de Norma y Tipo de Agente
             alicuota = (mvt.amount / mvt.base) * currency_rate
             v+= str(round(alicuota,2)).replace('.',',').zfill(5)
-            # Campo 20
+
+            # Campo 20 - Retención/Percepción Practicada
+            # Decimales: 2
+            # Mínimo: 0
+            # Máximo: 9999999999999,99
+            # Retención/Percepción Practicada= Monto Sujeto a Retención/ Percepción * Alícuota /100
             amount = round(mvt.amount  * currency_rate,2)
             v+= str(amount).replace('.',',').zfill(16)
-            v+= str(amount).replace(',','.').zfill(16)
-            # Campo 21
+
+            # Campo 21 - Monto Total Retenido/Percibido
+            # Igual a Retención/Percepción Practicada
+            v+= str(amount).replace('.',',').zfill(16)
             v+= ' ' 
+
             # Campo 22
             v+= ' '*9
 
