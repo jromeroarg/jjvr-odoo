@@ -88,7 +88,7 @@ class AccountVatLedger(models.Model):
         lines = []
         self.ensure_one()
         for invoice in self.invoice_ids:
-            move_tax = None
+            mvt_per = None
             vat_amount = 0
             cantidad = 0
             if invoice.currency_id.id == invoice.company_id.currency_id.id:
@@ -97,10 +97,10 @@ class AccountVatLedger(models.Model):
                 currency_rate = invoice.currency_rate
             for mvt in invoice.tax_line_ids:
                 if mvt.tax_id.id == self.account_tax_per_id.id:
-                    move_tax = mvt
+                    mvt_per = mvt
                 if (mvt.tax_id.tax_group_id.type == 'tax') and (mvt.tax_id.tax_group_id.afip_code > 0):
                     vat_amount += mvt.amount
-            if not move_tax:
+            if not mvt_per:
                 continue
 
             #Inicio del registro
@@ -179,7 +179,7 @@ class AccountVatLedger(models.Model):
             # Decimales: 2
             # Máximo: 9999999999999,99
             total_amount = invoice.amount_total*currency_rate
-            v+= str(round(total_amount,2)).replace('.',',').zfill(16)
+            v+= str('%.2f'%round(total_amount,2)).replace('.',',').zfill(16)
 
             # Campo 9 - Nro de certificado propio
             # Si Tipo de Operación =1 se carga el Nro de certificado o blancos
@@ -266,8 +266,8 @@ class AccountVatLedger(models.Model):
             # Mínimo: 0
             # Máximo: 9999999999999,99
             # Importe Total del comprobante menos los conceptos de IVA
-            imp_otr_vat=total_amount-vat_amount*currency_rate
-            v+= str(round(imp_otr_vat,2)).replace('.',',').zfill(16)
+            imp_otr_vat= (invoice.amount_tax - vat_amount) * currency_rate
+            v+= str('%.2f'%round(imp_otr_vat,2)).replace('.',',').zfill(16)
 
             # Campo 17 - Importe IVA
             # Decimales: 2
@@ -275,7 +275,7 @@ class AccountVatLedger(models.Model):
             # Máximo: 9999999999999,99
             # Solo completar si Letra del Comprobante = (A,M)
             if (inv_letter == 'A') or (inv_letter == 'M'):
-                v+= str(round(vat_amount * currency_rate,2)).replace('.',',').zfill(16)
+                v+= str('%.2f'%round(vat_amount * currency_rate,2)).replace('.',',').zfill(16)
             else:
                 v+= '0000000000000,00'
 
@@ -285,23 +285,23 @@ class AccountVatLedger(models.Model):
             # Mínimo: 0
             # Máximo: 9999999999999,99
             # Monto Sujeto a Retención/ Percepción= (Monto del comprobante - Importe Iva - Importe otros conceptos)
-            base = mvt.base * currency_rate
-            v+= str(round(base,2)).replace('.',',').zfill(16)
+            base = mvt_per.base * currency_rate
+            v+= str('%.2f'%round(base,2)).replace('.',',').zfill(16)
 
             # Campo 19 -Alícuota
             # Decimales: 2
             # Mínimo: 0
             # Máximo: 99,99
             # Según el Tipo de Operación,Código de Norma y Tipo de Agente
-            alicuota = (mvt.amount / mvt.base) * currency_rate
-            v+= str(round(alicuota,2)).replace('.',',').zfill(5)
+            alicuota = (mvt_per.amount / mvt_per.base * 100)
+            v+= str('%.2f'%round(alicuota,2)).replace('.',',').zfill(5)
 
             # Campo 20 - Retención/Percepción Practicada
             # Decimales: 2
             # Mínimo: 0
             # Máximo: 9999999999999,99
             # Retención/Percepción Practicada= Monto Sujeto a Retención/ Percepción * Alícuota /100
-            amount = round(mvt.amount  * currency_rate,2)
+            amount = '%.2f'%round(mvt_per.amount  * currency_rate,2)
             v+= str(amount).replace('.',',').zfill(16)
 
             # Campo 21 - Monto Total Retenido/Percibido
