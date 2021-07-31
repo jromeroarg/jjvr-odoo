@@ -26,6 +26,19 @@ class AccountVatLedger(models.Model):
     agip_vouchers_filename = fields.Char(
         compute='_compute_agip_files',
     )
+
+    REGAGIP_NC_CV_CBTE = fields.Text(
+        'REGAGIP_NC_CV_CBTE',
+        readonly=True,
+    )
+    agip_nc_vouchers_file = fields.Binary(
+        compute='_compute_agip_nc_files',
+        readonly=True
+    )
+    agip_nc_vouchers_filename = fields.Char(
+        compute='_compute_agip_nc_files',
+    )
+
     account_tax_per_id = fields.Many2one(
         comodel_name='account.tax',
         relation='account_vat_ledger_account_tax_per_rel',
@@ -82,12 +95,32 @@ class AccountVatLedger(models.Model):
             self.agip_vouchers_file = None 
             self.agip_vouchers_filename = None
 
+    def _compute_agip_nc_files(self):
+        self.ensure_one()
+        # segun vimos aca la afip espera "ISO-8859-1" en vez de utf-8
+        # http://www.planillasutiles.com.ar/2015/08/
+        # como-descargar-los-archivos-de.html
+        if self.REGAGIP_NC_CV_CBTE:
+            self.agip_nc_vouchers_filename = _('AGIP_NC_%s_%s.txt') % (
+                self.type,
+                self.date_to,
+                # self.period_id.name
+            )
+            self.agip_nc_vouchers_file = base64.encodestring(
+                self.REGAGIP_NC_CV_CBTE.encode('utf8'))
+        else:
+            self.agip_nc_vouchers_file = None 
+            self.agip_nc_vouchers_filename = None
+
 
     def compute_agip_data(self):
         # sacamos todas las lineas y las juntamos
         lines = []
         self.ensure_one()
         for invoice in self.invoice_ids:
+            # si es una nota de crédito se omite el registro, ya que tiene otro formato el txt
+            if invoice.document_type_id.internal_type == 'credit_note':
+                continue
             mvt_per = None
             vat_amount = 0
             cantidad = 0
@@ -100,6 +133,7 @@ class AccountVatLedger(models.Model):
                     mvt_per = mvt
                 if (mvt.tax_id.tax_group_id.type == 'tax') and (mvt.tax_id.tax_group_id.afip_code > 0):
                     vat_amount += mvt.amount
+            # si el comprobante no tiene la percpción buscada se omite el registro
             if not mvt_per:
                 continue
 
@@ -121,7 +155,8 @@ class AccountVatLedger(models.Model):
             v+= aux1.strftime("%d/%m/%Y")
 
             # Campo 4 - Tipo de comprobante origen de la retención
-            # Si Tipo de Operación =1 : 01 . Factura
+            # Si Tipo de Operación =1 : 
+            # 01 . Factura
             # 02 . Nota de Débito
             # 03 . Orden de Pago
             # 04 . Boleta de Depósito
@@ -315,4 +350,138 @@ class AccountVatLedger(models.Model):
             lines.append(v)
         self.REGAGIP_CV_CBTE = '\r\n'.join(lines)
 
+    def compute_agip_nc_data(self):
+        # extraemos los comprobantes de notas de credito
+        lines = []
+        self.ensure_one()
+        for invoice in self.invoice_ids:
+            # si no es una nota de crédito es omite el registro ya que tiene otro formato el txt
+            if invoice.document_type_id.internal_type != 'credit_note':
+                continue
+            mvt_per = None
+            vat_amount = 0
+            cantidad = 0
+            if invoice.currency_id.id == invoice.company_id.currency_id.id:
+                currency_rate = 1
+            else:
+                currency_rate = invoice.currency_rate
+            for mvt in invoice.tax_line_ids:
+                if mvt.tax_id.id == self.account_tax_per_id.id:
+                    mvt_per = mvt
+                if (mvt.tax_id.tax_group_id.type == 'tax') and (mvt.tax_id.tax_group_id.afip_code > 0):
+                    vat_amount += mvt.amount
+            if not mvt_per:
+                continue
+
+            #Inicio del registro
+            v = ''
+
+            # Campo 1 - Tipo de Operación
+            # 1: Retención
+            # 2: Percepción
+            v = '2'
+
+            # Campo 2 - Nro. Nota de crédito
+            # Mayor a 0 (cero)
+            # Máximo: 999999999999
+            inv_number = invoice.document_number.replace('-','')
+            v+= inv_number.zfill(12)
+
+            # Campo 3 - Fecha Nota de crédito 
+            # Formato: dd/mm/aaaa
+            aux1=invoice.date_invoice
+            aux1=datetime.strptime(aux1, '%Y-%m-%d')
+            v+= aux1.strftime("%d/%m/%Y")
+
+            # Campo 4 - Monto nota de crédito
+            # Mayor a 0 (cero)
+            # Decimales: 2
+            # Máximo: 9999999999999,99
+            total_amount = invoice.amount_total*currency_rate
+            v+= str('%.2f'%round(total_amount,2)).replace('.',',').zfill(16)
+
+            # Campo 5 - Nro de certificado propio
+            # Si Tipo de Operación = 1 se carga el Nro de certificado o blancos
+            # Si Tipo de Operación = 2 se completa con blancos.
+            v+= ' ' * 16
+
+            # Campo 6 - Tipo de comprobante origen de la retención
+            # Si Tipo de Operación =1 : 
+            # 01 . Factura
+            # 02 . Nota de Débito
+            # 03 . Orden de Pago
+            # 04 . Boleta de Depósito
+            # 05 . Liquidación de pago
+            # 06 . Certificado de obra
+            # 07 . Recibo
+            # 08 . Cont de Loc de Servic.
+            # 09 . Otro ComprobanteTipo Comprobante 
+            # Si Tipo de Operación =2: 
+            # 01 . Factura
+            # 09 . Otro Comprobante
+            v+= '01'
+
+            # Campo 7 - Letra del Comprobante
+            # Operación Retenciones
+            # Si Agente=R.I y Suj.Ret = R.I : Letra= A,M,B
+            # Si Agente=R.I y Suj.Ret = Exento : Letra= C
+            # Si Agente=R.I y Suj.Ret = Monot. : Letra= C
+            # Si Agente=Exento y Suj.Ret=R.I : Letra= B
+            # Si Agente=Exento y Suj.Ret=Exento : Letra= C
+            # Si Agente=Exento y Suj.Ret=Monot. : Letra= C
+            # Operación Percepción
+            # Si Agente=R.I y Suj.Ret = R.I : Letra= A,M,B
+            # Si Agente=R.I y Suj.Ret = Exento : Letra= B
+            # Si Agente=R.I y Suj.Ret = Monot. : Letra= B
+            # Si Agente=R.I y Suj.Ret = No Cat. : Letra= B
+            # Si Agente=Exento y Suj.Ret=R.I : Letra=C
+            # Si Agente=Exento y Suj.Ret=Exento : Letra= C
+            # Si Agente=Exento y Suj.Ret=Monot. : Letra= C
+            # Si Agente=Exento y Suj.Ret=No Cat. : Letra=C
+            # Si Tipo Comprobante = (01,06,07): A,B,C,M 
+            # sino 1 dígito blanco
+            # jjvr - Se decide tomar la letra del documento de AFIP para percepcion
+            inv_letter = invoice.document_type_id.document_letter_id.name
+            v+= inv_letter
+
+            # Campo 8 - Nro de comprobante
+            # Mayor a 0 (cero)
+            nro_comprob = invoice.document_number.replace('-','')
+            v+= nro_comprob.zfill(16)
+
+            # Campo 9 - Nro de documento del Retenido
+            # Mayor a 0(cero)
+            # Máximo: 99999999999            
+            v+= invoice.partner_id.main_id_number.zfill(11)
+
+            # Campo 10 - Código de Norma
+            v+= '014'
+
+            # Campo 11 - Fecha de retención/percepción
+            # Formato: dd/mm/aaaa
+            aux1=invoice.date_invoice
+            aux1=datetime.strptime(aux1, '%Y-%m-%d')
+            v+= aux1.strftime("%d/%m/%Y")
+
+            # Campo 12 - Ret/percep a deducir
+            # Decimales: 2
+            # Mínimo: 0
+            # Máximo: 9999999999999,99
+            # Ret/percep a deducir = Monto nota de crédito * Alícuota/100
+            amount = '%.2f'%round(mvt_per.amount  * currency_rate,2)
+            v+= str(amount).replace('.',',').zfill(16)
+
+            # Campo 13 -Alícuota
+            # Decimales: 2
+            # Mínimo: 0
+            # Máximo: 99,99
+            # Según el Tipo de Operación,Código de Norma y Tipo de Agente
+            alicuota = (mvt_per.amount / mvt_per.base * 100)
+            v+= str('%.2f'%round(alicuota,2)).replace('.',',').zfill(5)
+
+             # Campo ??
+            # v+= ' '*9
+
+            lines.append(v)
+        self.REGAGIP_NC_CV_CBTE = '\r\n'.join(lines)
 

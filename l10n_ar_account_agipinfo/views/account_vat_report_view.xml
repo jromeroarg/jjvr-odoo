@@ -11,7 +11,8 @@
                 </field -->
                 <notebook>
                     <page string="AGIP" name="agip">
-                        <button name="compute_agip_data" type="object" string="Generar Informacion" />
+                        <button name="compute_agip_data" type="object" string="Generar Facturas" />
+                        <button name="compute_agip_nc_data" type="object" string="Generar N.Credit" />
                         <group>
                             <group>
                                 <field name="account_tax_per_id"/>
@@ -20,6 +21,7 @@
                                 <field name="account_tax_ret_id"/>
                             </group>
                         </group>
+
                         <group>
                             <field name="agip_vouchers_filename" invisible="1"/>
                             <group>
@@ -27,9 +29,19 @@
                             </group>
                         </group>
                         <group col="1" groups="base.group_no_one">
-                            <!-- <field name="REGDIGITAL_CV_CABECERA"/> -->
                             <field name="REGAGIP_CV_CBTE"/>
                         </group>
+
+                        <group>
+                            <field name="agip_nc_vouchers_filename" invisible="1"/>
+                            <group>
+                                <field name="agip_nc_vouchers_file" filename="agip_nc_vouchers_filename"/>
+                            </group>
+                        </group>
+                        <group col="1" groups="base.group_no_one">
+                            <field name="REGAGIP_NC_CV_CBTE"/>
+                        </group>
+
                     </page>
                 </notebook>
             </field>
