@@ -134,7 +134,9 @@ class AccountVatLedger(models.Model):
                 if (mvt.tax_id.tax_group_id.type == 'tax') and (mvt.tax_id.tax_group_id.afip_code > 0):
                     vat_amount += mvt.amount
             # si el comprobante no tiene la percpción buscada se omite el registro
-            if not mvt_per:
+            if not mvt_per:                 # si no está el impuesto buscado 
+                continue
+            elif mvt_per.amount < 0.01:     # si está el impuesto pero con valor = 0
                 continue
 
             #Inicio del registro
@@ -370,7 +372,9 @@ class AccountVatLedger(models.Model):
                     mvt_per = mvt
                 if (mvt.tax_id.tax_group_id.type == 'tax') and (mvt.tax_id.tax_group_id.afip_code > 0):
                     vat_amount += mvt.amount
-            if not mvt_per:
+            if not mvt_per:                 # si no está el impuesto buscado 
+                continue
+            elif mvt_per.amount < 0.01:     # si está el impuesto pero con valor = 0
                 continue
 
             #Inicio del registro
