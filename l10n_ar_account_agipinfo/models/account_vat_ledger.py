@@ -275,9 +275,9 @@ class AccountVatLedger(models.Model):
             if sit_ib_ret == '4':
                 nro_inscr_ret='00000000000'
             elif not invoice.partner_id.gross_income_number:
-                nro_inscr_ret=invoice.partner_id.main_id_number
+                nro_inscr_ret=invoice.partner_id.main_id_number.replace('-','').zfill(11)
             else:
-                nro_inscr_ret=str(invoice.partner_id.gross_income_number).zfill(11)                
+                nro_inscr_ret=str(invoice.partner_id.gross_income_number).replace('-','').zfill(11)                
             v+= nro_inscr_ret
 
             # Campo 14 - Situación frente al IVA del Retenido
@@ -295,7 +295,7 @@ class AccountVatLedger(models.Model):
 
             # Campo 15 - Razón Social del Retenido
             lastname = invoice.partner_id.name[:30]
-            lastname = lastname.ljust(30)
+            lastname = lastname.ljust(30).replace(' ','_')
             v+= lastname
 
             # Campo 16 - Importe otros conceptos
@@ -317,12 +317,19 @@ class AccountVatLedger(models.Model):
                 v+= '0000000000000,00'
 
 
+            # Calculo adicional:
+            # De acuerdo a la alicuota, base y monto de la percepcion
+            # se toma como el monto de la percepción declarado en la contabilidad
+            amount = round(mvt_per.amount * currency_rate,2)
+            alicuota = round((mvt_per.amount / mvt_per.base * 100),2)
+            base = amount / alicuota
+
             # Campo 18 - Monto Sujeto a Retención/ Percepción
             # Decimales: 2
             # Mínimo: 0
             # Máximo: 9999999999999,99
             # Monto Sujeto a Retención/ Percepción= (Monto del comprobante - Importe Iva - Importe otros conceptos)
-            base = mvt_per.base * currency_rate
+            #base = mvt_per.base * currency_rate
             v+= str('%.2f'%round(base,2)).replace('.',',').zfill(16)
 
             # Campo 19 -Alícuota
@@ -330,24 +337,23 @@ class AccountVatLedger(models.Model):
             # Mínimo: 0
             # Máximo: 99,99
             # Según el Tipo de Operación,Código de Norma y Tipo de Agente
-            alicuota = (mvt_per.amount / mvt_per.base * 100)
-            v+= str('%.2f'%round(alicuota,2)).replace('.',',').zfill(5)
+            #alicuota = (mvt_per.amount / mvt_per.base * 100)
+            v+= str('%.2f'%alicuota).replace('.',',').zfill(5)
 
             # Campo 20 - Retención/Percepción Practicada
             # Decimales: 2
             # Mínimo: 0
             # Máximo: 9999999999999,99
             # Retención/Percepción Practicada= Monto Sujeto a Retención/ Percepción * Alícuota /100
-            amount = '%.2f'%round(mvt_per.amount  * currency_rate,2)
-            v+= str(amount).replace('.',',').zfill(16)
+            #amount = '%.2f'%round(mvt_per.amount  * currency_rate,2)
+            v+= str('%.2f'%amount).replace('.',',').zfill(16)
 
             # Campo 21 - Monto Total Retenido/Percibido
             # Igual a Retención/Percepción Practicada
-            v+= str(amount).replace('.',',').zfill(16)
-            v+= ' ' 
+            v+= str('%.2f'%amount).replace('.',',').zfill(16)
 
             # Campo 22
-            v+= ' '*9
+            v+= ' '*11
 
             lines.append(v)
         self.REGAGIP_CV_CBTE = '\r\n'.join(lines)
@@ -456,7 +462,7 @@ class AccountVatLedger(models.Model):
             # Campo 9 - Nro de documento del Retenido
             # Mayor a 0(cero)
             # Máximo: 99999999999            
-            v+= invoice.partner_id.main_id_number.zfill(11)
+            v+= invoice.partner_id.main_id_number.replace('-','').zfill(11)
 
             # Campo 10 - Código de Norma
             v+= '014'
