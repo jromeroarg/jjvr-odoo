@@ -298,13 +298,21 @@ class AccountVatLedger(models.Model):
             lastname = lastname.ljust(30).replace(' ','_')
             v+= lastname
 
+            # Calculo adicionales:
+            # De acuerdo a la alicuota, base y monto de la percepcion
+            # se toma como el monto de la percepción declarado en la contabilidad
+            amount = round(mvt_per.amount * currency_rate,2)
+            alicuota = round((mvt_per.amount / mvt_per.base * 100),2)
+            base = round((amount / alicuota * 100) ,2)
+            vat_amount = round(vat_amount * currency_rate,2)
+            imp_otr_vat = total_amount - vat_amount - base
+
             # Campo 16 - Importe otros conceptos
             # Decimales: 2
             # Mínimo: 0
             # Máximo: 9999999999999,99
             # Importe Total del comprobante menos los conceptos de IVA
-            imp_otr_vat= (invoice.amount_tax - vat_amount) * currency_rate
-            v+= str('%.2f'%round(imp_otr_vat,2)).replace('.',',').zfill(16)
+            v+= str('%.2f'%imp_otr_vat).replace('.',',').zfill(16)
 
             # Campo 17 - Importe IVA
             # Decimales: 2
@@ -312,17 +320,9 @@ class AccountVatLedger(models.Model):
             # Máximo: 9999999999999,99
             # Solo completar si Letra del Comprobante = (A,M)
             if (inv_letter == 'A') or (inv_letter == 'M'):
-                v+= str('%.2f'%round(vat_amount * currency_rate,2)).replace('.',',').zfill(16)
+                v+= str('%.2f'%vat_amount).replace('.',',').zfill(16)
             else:
                 v+= '0000000000000,00'
-
-
-            # Calculo adicional:
-            # De acuerdo a la alicuota, base y monto de la percepcion
-            # se toma como el monto de la percepción declarado en la contabilidad
-            amount = round(mvt_per.amount * currency_rate,2)
-            alicuota = round((mvt_per.amount / mvt_per.base * 100),2)
-            base = amount / alicuota
 
             # Campo 18 - Monto Sujeto a Retención/ Percepción
             # Decimales: 2
@@ -330,7 +330,7 @@ class AccountVatLedger(models.Model):
             # Máximo: 9999999999999,99
             # Monto Sujeto a Retención/ Percepción= (Monto del comprobante - Importe Iva - Importe otros conceptos)
             #base = mvt_per.base * currency_rate
-            v+= str('%.2f'%round(base,2)).replace('.',',').zfill(16)
+            v+= str('%.2f'%base).replace('.',',').zfill(16)
 
             # Campo 19 -Alícuota
             # Decimales: 2
