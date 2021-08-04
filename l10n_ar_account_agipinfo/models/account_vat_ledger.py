@@ -148,7 +148,7 @@ class AccountVatLedger(models.Model):
             v = '2'
 
             # Campo 2 - Código de Norma
-            v+= '014'
+            v+= '029'
 
             # Campo 3 - Fecha de retención/percepción - Formato: dd/mm/aaaa
             # v+= invoice.date_invoice.strftime("%d/%m/%Y")
@@ -465,7 +465,7 @@ class AccountVatLedger(models.Model):
             v+= invoice.partner_id.main_id_number.replace('-','').zfill(11)
 
             # Campo 10 - Código de Norma
-            v+= '014'
+            v+= '029'
 
             # Campo 11 - Fecha de retención/percepción
             # Formato: dd/mm/aaaa
