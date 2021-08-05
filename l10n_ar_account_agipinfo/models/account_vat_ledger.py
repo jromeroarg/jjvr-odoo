@@ -403,11 +403,16 @@ class AccountVatLedger(models.Model):
             aux1=datetime.strptime(aux1, '%Y-%m-%d')
             v+= aux1.strftime("%d/%m/%Y")
 
+            #Cálculos varios previos
+            amount = round(mvt_per.amount  * currency_rate,2)
+            alicuota = (mvt_per.amount / mvt_per.base * 100)
+            total_amount = amount / alicuota * 100
+
             # Campo 4 - Monto nota de crédito
             # Mayor a 0 (cero)
             # Decimales: 2
             # Máximo: 9999999999999,99
-            total_amount = invoice.amount_total*currency_rate
+            # total_amount = invoice.amount_total*currency_rate
             v+= str('%.2f'%round(total_amount,2)).replace('.',',').zfill(16)
 
             # Campo 5 - Nro de certificado propio
@@ -478,15 +483,13 @@ class AccountVatLedger(models.Model):
             # Mínimo: 0
             # Máximo: 9999999999999,99
             # Ret/percep a deducir = Monto nota de crédito * Alícuota/100
-            amount = '%.2f'%round(mvt_per.amount  * currency_rate,2)
-            v+= str(amount).replace('.',',').zfill(16)
+            v+= str('%.2f'%amount).replace('.',',').zfill(16)
 
             # Campo 13 -Alícuota
             # Decimales: 2
             # Mínimo: 0
             # Máximo: 99,99
             # Según el Tipo de Operación,Código de Norma y Tipo de Agente
-            alicuota = (mvt_per.amount / mvt_per.base * 100)
             v+= str('%.2f'%round(alicuota,2)).replace('.',',').zfill(5)
 
              # Campo ??
