@@ -241,7 +241,7 @@ class AccountVatLedger(models.Model):
             # Campo 11 - Nro de documento del Retenido
             # Mayor a 0(cero)
             # Máximo: 99999999999            
-            v+= invoice.partner_id.main_id_number.zfill(11)
+            v+= invoice.partner_id.main_id_number.replace('-','').zfill(11) 
 
             # Campo 12 - Situación IB del Retenido
             # 1: Local 
@@ -250,19 +250,19 @@ class AccountVatLedger(models.Model):
             # 5: Reg.Simplificado
             # Si Tipo de Documento=3: Situación IB del Retenido=(1,2,4,5)
             # Si Tipo de Documento=(1,2): Situación IB del Retenido=4
-            p_gross_income_type=invoice.partner_id.gross_income_type
-            sit_ib_ret=' '
-            if tip_doc_ret == '3':
-                if p_gross_income_type == 'local':
-                    sit_ib_ret='1'
-                elif p_gross_income_type == 'multilateral':
-                    sit_ib_ret='2'
-                elif p_gross_income_type == 'no_liquida':
-                    sit_ib_ret='4'
-                else:
-                    sit_ib_ret= '5'
-            else:
-                sit_ib_ret='4'
+            # p_gross_income_type=invoice.partner_id.gross_income_type
+            # if tip_doc_ret == '3':
+            #     if p_gross_income_type == 'local':
+            #         sit_ib_ret='1'
+            #     elif p_gross_income_type == 'multilateral':
+            #         sit_ib_ret='2'
+            #     elif p_gross_income_type == 'no_liquida':
+            #         sit_ib_ret='4'
+            #     else:
+            #         sit_ib_ret= '5'
+            # else:
+            #     sit_ib_ret='4'
+            sit_ib_ret='5'
             v+= sit_ib_ret
                 
             # Campo 13 - Nro Inscripción IB del Retenido
@@ -271,13 +271,13 @@ class AccountVatLedger(models.Model):
             # 1.Local: 8 digítos Número + 2 dígitos Verificador
             # 2. Conv.Multilateral: 3 dígitos Jurisdicción + 6 dígitos Número + 1 Dígito Verificador
             # 5. Reg.Simplificado: 2 dígitos + 8 dígitos + 1 dígito verificador
-            nro_inscr_ret=''
-            if sit_ib_ret == '4':
-                nro_inscr_ret='00000000000'
-            elif not invoice.partner_id.gross_income_number:
-                nro_inscr_ret=invoice.partner_id.main_id_number.replace('-','').zfill(11)
-            else:
-                nro_inscr_ret=str(invoice.partner_id.gross_income_number).replace('-','').zfill(11)                
+            # if sit_ib_ret == '4':
+            #     nro_inscr_ret='00000000000'
+            # elif not invoice.partner_id.gross_income_number:
+            #     nro_inscr_ret=invoice.partner_id.main_id_number.replace('-','').zfill(11)
+            # else:
+            #     nro_inscr_ret=str(invoice.partner_id.gross_income_number).replace('-','').zfill(11)                
+            nro_inscr_ret=invoice.partner_id.main_id_number.replace('-','').zfill(11)
             v+= nro_inscr_ret
 
             # Campo 14 - Situación frente al IVA del Retenido
