@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="0"><!-- Data records go here -->
+        <record id="group_debit_bank_user" model="res.groups">
+            <field name="name">User</field>
+            <field name="category_id" ref="base.module_category_debit_bank"/>
+            <field name="implied_ids" eval="[(4, ref(&apos;base.group_user&apos;))]"/>
+        </record>
+        <record id="group_debit_bank_manager" model="res.groups">
+            <field name="name">Manager</field>
+            <field name="category_id" ref="base.module_category_debit_bank"/>
+            <field name="implied_ids" eval="[(4, ref(&apos;group_debit_bank_user&apos;))]"/>
+            <field name="users" eval="[(4, ref(&apos;base.user_root&apos;))]"/>
+        </record>
+    </data>
+    <data noupdate="1">
+        <record model="ir.rule" id="debit_bank_book_user_rule">
+            <field name="name">Debit Bank: see only own books</field>
+            <field name="model_id" ref="model_debit_bank_book"/>
+            <field name="groups" eval="[(4, ref(&apos;base.group_user&apos;))]"/>
+            <field name="domain_force">[(&apos;create_uid&apos;, &apos;=&apos;, user.id)]</field>
+        </record>
+        <record model="ir.rule" id="debit_bank_book_all_rule">
+            <field name="name">Debit Bank: see all books</field>
+            <field name="model_id" ref="model_debit_bank_book"/>
+            <field name="groups" eval="[(4, ref(&apos;base.group_system&apos;))]"/>
+            <field name="domain_force">[(1, &apos;=&apos;, 1)]</field>
+        </record>
+    </data>
+</odoo>

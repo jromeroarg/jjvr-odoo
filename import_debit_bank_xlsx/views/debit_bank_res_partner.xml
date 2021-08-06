@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+<record id="view_partner_property_form" model="ir.ui.view">
+        <field name="name">res.partner.form</field>
+        <field name="model">res.partner</field>
+        <field name="inherit_id" ref="l10n_ar.view_partner_property_form"/>
+        <field name="arch" type="xml">
+            <page name="accounting" position="after">
+                <page string="Debito Bancario" name="fiscal_data" attrs="{'invisible': [('is_company','=',False),('parent_id','!=',False)]}">
+
+                    <!-- add other documents -->
+                    <group string="Debito Bancario" name="debit">
+                        <group name="debit_col_1">
+                            <field name="debit_bank_ids"/>
+                        </group>
+                    </group>
+                </page>
+            </page>
+        </field>
+    </record>
+
+
+</odoo>

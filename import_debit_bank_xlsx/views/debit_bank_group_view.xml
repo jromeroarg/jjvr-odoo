@@ -1,0 +1,67 @@
+<odoo>
+  <data>
+    
+    <record id="view_debit_bank_group_tree" model="ir.ui.view">
+      <field name="name">Debit Bank Group</field>
+      <field name="model">debit.bank.group</field>
+      <field name="arch" type="xml">
+        <tree string="Prueba">
+          <field name="periodo"/>
+          <field name="date_from"/>
+          <field name="date_to"/>
+          <field name="journal_id"/>
+        </tree>
+      </field>  
+    </record>
+
+    <record id="action_debit_bank_group" model="ir.actions.act_window">
+        <field name="name">Debit Bank Group</field>
+        <field name="type">ir.actions.act_window</field>
+        <field name="res_model">debit.bank.group</field>
+        <field name="view_mode">tree,form</field>
+        <field name="help" type="html">
+          <p class="oe_view_nocontent_create">
+            Custom
+          </p>
+          <p>
+            click 'Nuevo' para añadir nuevos elementos
+          </p>
+        </field>
+    </record>
+
+    <menuitem action="action_debit_bank_group" id="menu_debit_bank_group_xlsx" name="Grupo de Debito Bancario" parent="account_payment_fix.menu_finance_bank_and_cash" sequence="210" />
+
+    <record model='ir.ui.view' id='debit_bank_group_form'>
+        <field name='name'>Debit Bank Group</field> 
+        <field name="model">debit.bank.group</field>
+        <field name='arch' type='xml'>
+            <form string="Debit Bank Group">
+                <header>
+                    <button name="post_receipt" string="Generar" type="object"/>
+                </header>
+                <sheet>
+                    <group>
+                        <group>
+                            <field name="periodo"/>
+                            <field name="date_from"/>
+                            <field name="date_to"/>
+                            <field name="journal_id"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="DebitBank" name="debit_bank_ids">
+                            <field name="debit_bank_ids">
+                            </field>
+                        </page>
+                    </notebook>
+                </sheet>
+                <div class="oe_chatter">
+                    <field name="message_follower_ids" widget="mail_followers"/>
+                    <field name="message_ids" widget="mail_thread"/>
+                </div>
+            </form>
+        </field>
+    </record>
+  
+  </data>
+</odoo>

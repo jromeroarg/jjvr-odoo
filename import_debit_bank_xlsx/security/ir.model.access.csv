@@ -1,0 +1,5 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_debit_bank_book_user,access_debit_bank_book_user,model_debit_bank,base.group_user,1,1,1,0
+access_debit_bank_book_user,access_debit_bank_book_user,model_debit_bank_group,base.group_user,1,1,1,0
+access_debit_bank_book_admin,access_debit_bank_book_admin,model_debit_bank_group,base.group_system,1,1,1,1
+access_debit_bank_book_admin,access_debit_bank_book_admin,model_debit_bank,base.group_system,1,1,1,1
