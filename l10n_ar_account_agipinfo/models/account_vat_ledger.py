@@ -4,6 +4,7 @@
 ##############################################################################
 from odoo import models, fields, api, exceptions, _
 # from odoo.exceptions import ValidationError
+from odoo.exceptions import UserError
 from ast import literal_eval
 from datetime import datetime, date
 import base64
@@ -45,12 +46,20 @@ class AccountVatLedger(models.Model):
         string="Impuesto Percepcion",
         domain=[('type_tax_use','=','sale')]
     )
+    
     account_tax_ret_id = fields.Many2one(
         comodel_name='account.tax',
         relation='account_vat_ledger_account_tax_ret_rel',
         string="Impuesto Retencion",
         domain=[('type_tax_use','=','supplier')]
     )
+    account_move_line_ids = fields.Many2many(
+        comodel_name='account.move.line',
+        relation='account_move_line_ids_rel',
+        string="Account Move",
+        compute='_compute_move_line'
+    )
+
 
     def format_amount(self, amount, padding=15, decimals=2, invoice=False):
         # get amounts on correct sign despite conifiguration on taxes and tax
@@ -112,27 +121,60 @@ class AccountVatLedger(models.Model):
             self.agip_nc_vouchers_file = None 
             self.agip_nc_vouchers_filename = None
 
+    # Inicio-JJVR
+    @api.multi
+    @api.depends('journal_ids','date_from', 'date_to')
+    def _compute_move_line(self):
+        for rec in self:
+
+            invoices_domain = [
+                '|',('tax_line_id','=', rec.account_tax_per_id.id),
+                ('tax_line_id','=', rec.account_tax_ret_id.id),
+                ('company_id', '=', rec.company_id.id),
+                ('date', '>=', rec.date_from),
+                ('date', '<=', rec.date_to),
+                # ('tax_line_id.tax_group_id.type', '=', 'tax'),
+                # ('tax_line_id.tax_group_id.tax', '=', 'vat'),
+            ]
+            invoices = rec.env['account.move.line'].search(
+                invoices_domain,
+                # order='date_invoice asc, document_number asc, number asc, '
+                # 'id asc'
+            )
+            rec.account_move_line_ids = invoices
+    # Fin-JJVR
 
     def compute_agip_data(self):
         # sacamos todas las lineas y las juntamos
+        # raise Warning("Valor de account_tax_ret_id:"+str(self.account_tax_per_id.id))
+        # raise Warning("Cantidad de registros:"+str(len(self.account_move_line_ids)))
         lines = []
         self.ensure_one()
-        for invoice in self.invoice_ids:
+        for invoice in self.account_move_line_ids:
             # si es una nota de crédito se omite el registro, ya que tiene otro formato el txt
+            # raise Warning("Cantidad de registros:"+invoice.document_type_id.internal_type)
             if invoice.document_type_id.internal_type == 'credit_note':
                 continue
             mvt_per = None
             vat_amount = 0
             cantidad = 0
-            if invoice.currency_id.id == invoice.company_id.currency_id.id:
+            if invoice.invoice_id.currency_id.id == invoice.company_id.currency_id.id:
                 currency_rate = 1
             else:
-                currency_rate = invoice.currency_rate
-            for mvt in invoice.tax_line_ids:
-                if mvt.tax_id.id == self.account_tax_per_id.id:
+                currency_rate = invoice.invoice_id.currency_rate
+            # for mvt in invoice.tax_line_ids:
+            #     if mvt.tax_id.id == self.account_tax_per_id.id:
+            #         mvt_per = mvt
+            #     if (mvt.tax_id.tax_group_id.type == 'tax') and (mvt.tax_id.tax_group_id.afip_code > 0):
+            #         vat_amount += mvt.amount
+            # Inicio-JJVR
+            for mvt in invoice.invoice_id.tax_line_ids:
+                if (mvt.tax_id.id == self.account_tax_per_id.id) or (mvt.tax_id.id == self.account_tax_ret_id.id):
                     mvt_per = mvt
-                if (mvt.tax_id.tax_group_id.type == 'tax') and (mvt.tax_id.tax_group_id.afip_code > 0):
+                if (mvt.tax_id.tax_group_id.type == 'tax') or (mvt.tax_id.tax_group_id.type == 'withholding'):
                     vat_amount += mvt.amount
+            # Fin-JJVR
+            
             # si el comprobante no tiene la percpción buscada se omite el registro
             if not mvt_per:                 # si no está el impuesto buscado 
                 continue
@@ -152,7 +194,7 @@ class AccountVatLedger(models.Model):
 
             # Campo 3 - Fecha de retención/percepción - Formato: dd/mm/aaaa
             # v+= invoice.date_invoice.strftime("%d/%m/%Y")
-            aux1=invoice.date_invoice
+            aux1=invoice.invoice_id.date_invoice
             aux1=datetime.strptime(aux1, '%Y-%m-%d')
             v+= aux1.strftime("%d/%m/%Y")
 
@@ -204,18 +246,18 @@ class AccountVatLedger(models.Model):
             v+= inv_letter
 
             # Campo 6
-            inv_number = invoice.document_number.replace('-','0')
+            inv_number = invoice.invoice_id.document_number.replace('-','0')
             v+= inv_number.zfill(16)
 
             # Campo 7 - Fecha del comprobante - Formato: dd/mm/aaaa
-            aux1=invoice.date_invoice
+            aux1=invoice.invoice_id.date_invoice
             aux1=datetime.strptime(aux1, '%Y-%m-%d')
             v+= aux1.strftime("%d/%m/%Y")
 
             # Campo 8 - Monto del comprobante total con impuestos incluidos
             # Decimales: 2
             # Máximo: 9999999999999,99
-            total_amount = invoice.amount_total*currency_rate
+            total_amount = invoice.invoice_id.amount_total*currency_rate
             v+= str('%.2f'%round(total_amount,2)).replace('.',',').zfill(16)
 
             # Campo 9 - Nro de certificado propio
