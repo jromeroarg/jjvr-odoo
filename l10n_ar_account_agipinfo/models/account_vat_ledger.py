@@ -398,14 +398,12 @@ class AccountVatLedger(models.Model):
                 else:
                     currency_rate = account_move_line.payment_id.currency_id.rate
 
-                amount_ret=account_move_line.payment_id.payment_group_id.payments_amount
-                base_amount_ret=account_move_line.tax_base_amount
-                vat_amount += amount_ret
+                amount_ret=account_move_line.payment_id.amount
+                base_amount_ret=account_move_line.payment_id.withholding_base_amount
+                vat_amount = 0
 
                 # si el comprobante no tiene la percpción buscada se omite el registro
-                if (not amount_ret) or (not base_amount_ret):                 # si no está el impuesto buscado 
-                    continue
-                elif (amount_ret < 0.01) or (base_amount_ret < 0.01):       # si está el impuesto pero con valor = 0
+                if (amount_ret < 0.01) or (base_amount_ret < 0.01):       # si está el impuesto con valor = 0
                     continue
 
                 #Inicio del registro
@@ -414,7 +412,7 @@ class AccountVatLedger(models.Model):
                 # Campo 1 - Tipo de Operación
                 # 1: Retención
                 # 2: Percepción
-                v = '2'
+                v = '1'
 
                 # Campo 2 - Código de Norma
                 v+= '029'
@@ -439,7 +437,7 @@ class AccountVatLedger(models.Model):
                 # Si Tipo de Operación =2: 
                 # 01 . Factura
                 # 09 . Otro Comprobante
-                v+= '01'
+                v+= '03'
 
                 # Campo 5 - Letra del Comprobante
                 # Operación Retenciones
@@ -469,8 +467,7 @@ class AccountVatLedger(models.Model):
                 #     elif invoice.document_type_id.code == '6':
                 #         v+= 'B'
                 # jjvr - Se decide tomar la letra del documento de AFIP para percepcion
-                inv_letter = account_move_line.document_type_id.document_letter_id.name
-                v+= inv_letter
+                v+= ' '
 
                 # Campo 6
                 inv_number = account_move_line.payment_id.document_number.replace('-','0')
@@ -484,13 +481,14 @@ class AccountVatLedger(models.Model):
                 # Campo 8 - Monto del comprobante total con impuestos incluidos
                 # Decimales: 2
                 # Máximo: 9999999999999,99
-                total_amount = account_move_line.payment_id.total_amount*currency_rate
+                total_amount = account_move_line.payment_id.payment_group_id.payments_amount*currency_rate
                 v+= str('%.2f'%round(total_amount,2)).replace('.',',').zfill(16)
 
                 # Campo 9 - Nro de certificado propio
-                # Si Tipo de Operación =1 se carga el Nro de certificado o blancos
+                # Si Tipo de Operación = 1 se carga el Nro de certificado o blancos
                 # Si Tipo de Operación = 2 se completa con blancos.
-                v+= ' ' * 16
+                cert_ret=account_move_line.payment_id.withholding_number
+                v+= cert_ret.rjust(16)
 
                 # Campo 10 - Tipo de documento del Retenido
                 # 3: CUIT
@@ -572,9 +570,9 @@ class AccountVatLedger(models.Model):
                 # se toma como el monto de la percepción declarado en la contabilidad
                 amount = round(amount_ret * currency_rate,2)
                 alicuota = round((amount_ret / base_amount_ret * 100),2)
-                base = round((amount / alicuota * 100) ,2)
+                base = round((base_amount_ret) ,2)
                 vat_amount = round(vat_amount * currency_rate,2)
-                imp_otr_vat = total_amount - vat_amount - base
+                imp_otr_vat = 0
 
                 # Campo 16 - Importe otros conceptos
                 # Decimales: 2
