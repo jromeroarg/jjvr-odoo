@@ -166,9 +166,11 @@ class AccountVatLedger(models.Model):
                 #         vat_amount += mvt.amount
                 # # Fin - Default
                 for mvt in account_move_line.invoice_id.tax_line_ids:
-                    mvt_per = mvt
-                    vat_amount += mvt.amount
-                
+                    if mvt.tax_id.id == self.account_tax_per_id.id:
+                        mvt_per = mvt
+                    if (mvt.tax_id.tax_group_id.type == 'tax') and (mvt.tax_id.tax_group_id.afip_code > 0):
+                        vat_amount += mvt.amount
+
                 # si el comprobante no tiene la percpción buscada se omite el registro
                 if not mvt_per:                 # si no está el impuesto buscado 
                     continue
