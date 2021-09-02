@@ -12,7 +12,7 @@ class DebitBank(models.Model):
         selection=[
                 ('Aprobado','Aprobado'),
                 ('Rechazado','Rechazado')])
-    partida = fields.Integer(string="Partida",required=True)
+    partida = fields.Char(string="Partida",required=True)
     importe = fields.Float(string="Importe",required=True)
     fh_vencimiento = fields.Date(string="Fecha Vencimiento",required=True)
     rechazo = fields.Char(string="Rechazo")
