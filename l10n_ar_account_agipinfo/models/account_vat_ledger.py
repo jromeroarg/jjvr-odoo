@@ -572,7 +572,7 @@ class AccountVatLedger(models.Model):
                 alicuota = round((amount_ret / base_amount_ret * 100),2)
                 base = round((base_amount_ret) ,2)
                 vat_amount = round(vat_amount * currency_rate,2)
-                imp_otr_vat = 0
+                imp_otr_vat = 0.00
 
                 # Campo 16 - Importe otros conceptos
                 # Decimales: 2
