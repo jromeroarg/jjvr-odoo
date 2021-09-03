@@ -402,6 +402,7 @@ class AccountVatLedger(models.Model):
 
                 amount_ret=account_move_line.payment_id.amount
                 base_amount_ret=account_move_line.payment_id.withholding_base_amount
+                invoice_amount_ret=account_move_line.payment_id.withholdable_invoiced_amount
                 vat_amount = 0
 
                 # si el comprobante no tiene la percpción buscada se omite el registro
@@ -483,7 +484,7 @@ class AccountVatLedger(models.Model):
                 # Campo 8 - Monto del comprobante total con impuestos incluidos
                 # Decimales: 2
                 # Máximo: 9999999999999,99
-                total_amount = account_move_line.payment_id.payment_group_id.payments_amount*currency_rate
+                total_amount = invoice_amount_ret*currency_rate
                 v+= str('%.2f'%round(total_amount,2)).replace('.',',').zfill(16)
 
                 # Campo 9 - Nro de certificado propio
