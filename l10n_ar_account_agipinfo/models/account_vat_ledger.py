@@ -737,7 +737,10 @@ class AccountVatLedger(models.Model):
             # Campo 9 - Nro de documento del Retenido
             # Mayor a 0(cero)
             # Máximo: 99999999999            
-            v+= invoice.partner_id.main_id_number.replace('-','').zfill(11)
+            if (invoice.partner_id.main_id_number>'') :
+                v+= invoice.partner_id.main_id_number.replace('-','').zfill(11)
+            else:
+                v+='           '
 
             # Campo 10 - Código de Norma
             v+= '029'
