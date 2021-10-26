@@ -357,6 +357,7 @@ class AccountVatLedger(models.Model):
                 # Mínimo: 0
                 # Máximo: 9999999999999,99
                 # Solo completar si Letra del Comprobante = (A,M)
+                inv_letter = account_move_line.document_type_id.document_letter_id.name
                 if (inv_letter == 'A') or (inv_letter == 'M'):
                     v+= str('%.2f'%vat_amount).replace('.',',').zfill(16)
                 else:
@@ -589,6 +590,7 @@ class AccountVatLedger(models.Model):
                 # Mínimo: 0
                 # Máximo: 9999999999999,99
                 # Solo completar si Letra del Comprobante = (A,M)
+                inv_letter = account_move_line.document_type_id.document_letter_id.name
                 if (inv_letter == 'A') or (inv_letter == 'M'):
                     v+= str('%.2f'%vat_amount).replace('.',',').zfill(16)
                 else:
