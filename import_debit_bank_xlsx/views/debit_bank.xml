@@ -12,6 +12,7 @@
           <field name="fh_vencimiento"/>
           <field name="rechazo"/>
           <field name="motivo"/>
+          <field name="activo"/>
         </tree>
       </field>  
     </record>
@@ -21,6 +22,9 @@
         <field name="type">ir.actions.act_window</field>
         <field name="res_model">debit.bank</field>
         <field name="view_mode">tree,form</field>
+        <!-- Para iniciar filtrando por los Activos True -->
+        <field name="context">{"search_default_activo":'activo'}</field>
+
         <field name="help" type="html">
           <p class="oe_view_nocontent_create">
             Custom
@@ -30,8 +34,18 @@
           </p>
         </field>
     </record>
-    
     <menuitem action="action_import_debit_bank_xlsx" id="menu_import_debit_bank_xlsx" name="Debito Bancario" parent="account_payment_fix.menu_finance_bank_and_cash" sequence="220"/>
     
+    <!-- filtro default - solo activos -->
+    <record id="debit_bank_active" model="ir.ui.view">
+        <field name='name'>Debit Bank</field> 
+        <field name="model">debit.bank</field>
+        <field name='arch' type='xml'>
+          <search string="Seleccionar por variable Activo">
+            <filter string="Activo" name="activo" domain="[('activo','=','True')]"/>
+          </search>
+        </field>
+    </record>
+
   </data>
 </odoo>

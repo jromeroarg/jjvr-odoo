@@ -17,6 +17,7 @@ class DebitBank(models.Model):
     fh_vencimiento = fields.Date(string="Fecha Vencimiento",required=True)
     rechazo = fields.Char(string="Rechazo")
     motivo = fields.Text(string="Motivo")
+    activo = fields.Boolean(string="Activo",default=True)
 
     @api.depends('status', 'partida', 'importe', 'fh_vencimiento', 'rechazo', 'motivo')
     def generate_receipt(self, journal_id):
@@ -51,4 +52,7 @@ class DebitBank(models.Model):
         self.env.context.update({'create_from_expense': False,})
         self.env.context.update({'create_from_statement': True,})
         payment.payment_group_id.post()
+
+        # Posteriormente al procesado, debemos convertir el debit bank a inactivo.
+        self.activo = False
         

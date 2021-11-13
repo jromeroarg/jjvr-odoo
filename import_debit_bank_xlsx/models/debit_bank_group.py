@@ -32,6 +32,7 @@ class DebitBankGroup(models.Model):
         required=True,
         domain=['|',('type','=','cash'),('type','=','bank')]
     )
+    activo = fields.Boolean(string="Activo",default=True)
 
     @api.depends('debit_bank_ids', 'date_from', 'date_to')
     def _compute_statement_vat_lines(self):
@@ -44,6 +45,16 @@ class DebitBankGroup(models.Model):
     @api.depends('debit_bank_ids', 'date_from', 'date_to', 'journal_id')
     def post_receipt(self):
         for rec in self.debit_bank_ids:
-            if(rec.status == 'Aprobado'):
-                debit_bank_obj = self.env['debit.bank'].search([('id', '=', rec.id)])
-                debit_bank_obj.generate_receipt(self.journal_id)
+            # Debitos que dan error, 
+            # se deben marcar, como no aplicados
+            try:
+                if((rec.status == 'Aprobado') and (rec.activo is True)):
+                    debit_bank_obj = self.env['debit.bank'].search([('id', '=', rec.id)])
+                    debit_bank_obj.generate_receipt(self.journal_id)
+                elif (rec.status == 'Rechazado'):
+                    rec.activo = False # Debito a inactivo, cuando esta rechazado
+            except:
+                rec.activo = True
+        # debitos completos procesados, pasan a inactivos
+        self.activo = False
+
