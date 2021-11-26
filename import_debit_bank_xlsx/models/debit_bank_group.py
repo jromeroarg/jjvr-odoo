@@ -56,5 +56,4 @@ class DebitBankGroup(models.Model):
             except:
                 rec.activo = True
         # debitos completos procesados, pasan a inactivos
-        self.activo = False
-
+        # self.activo = False
