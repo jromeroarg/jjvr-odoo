@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<templates xml:space="preserve">
+
+
+    <t t-name="PaymentInfoWidget">	
+        <div class='modal-dialog'>
+            <div class='popup popup-paymentrefinfo'>
+                <p class='title'>Please enter Information</p>
+                <div class='paymentrefinfo-detail'>
+
+                    <!-- begin add - paso 4 - condicionales pos_payment_type -->
+                    <t t-if="widget.options.pos_payment_type == 'referencia_de_pago'">
+                        <span class='label' style='color:black'>Payment Reference</span>
+                        <input class='detail' name='payment_ref' t-att-value='widget.options.payment_ref' placeholder='Payment Ref'></input>
+                    </t>
+                    <t t-if="widget.options.pos_payment_type == 'cupon_y_lote'">
+                        <span class='label' style='color:black'>Cupon</span>
+                        <input class='detail' name='cupon' t-att-value='widget.options.cupon' placeholder='Cupon'></input>
+                        <br/>
+                        <br/>
+                        <span class='label' style='color:black'>Lote</span>
+                        <input class='detail' name='lote' t-att-value='widget.options.lote' placeholder='Lote'></input>
+                    </t>
+                    <!-- end add -->
+
+                </div>
+                <div class='footer'>
+                    <div class='button confirm'>
+                        Confirm 
+                    </div>
+                    <div class='button cancel'>
+                        Cancel 
+                    </div>
+                </div>
+            </div>
+        </div>
+    </t>
+    
+    <t t-extend="PaymentScreen-Paymentlines">
+        <t t-jquery=".col-name" t-operation="append">
+            <t t-if="line.cashregister.journal.pos_payment_ref">
+                <span class='payment-info-button' t-att-data-cid='line.cid'><i class='fa fa-bank' /></span>
+            </t>
+        </t>
+    </t>
+</templates>
