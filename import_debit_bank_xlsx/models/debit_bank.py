@@ -32,7 +32,7 @@ class DebitBank(models.Model):
 
     @api.depends('status', 'partida', 'importe', 'fh_vencimiento', 'rechazo', 'motivo')
     def generate_receipt(self, journal_id):
-        res_obj = self.env['ir.model.data'].search([('model', '=', 'res.partner'),('name','=',self.partida)])
+        res_obj = self.env['ir.model.data'].search([('model', '=', 'res.partner'),('name','=',self.partida.split('.')[-1])])
         company_id = self.env.company.id
         currency_id = self.env.ref('base.main_company').currency_id
         payment_method = self.env['account.payment.method'].search([('payment_type', '=', 'inbound'),('code', '=', 'manual')])

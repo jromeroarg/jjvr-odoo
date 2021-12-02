@@ -58,5 +58,5 @@ class DebitBankGroup(models.Model):
                 rec.activo = True
                 is_okey = False
         # debitos completos procesados, pasan a inactivos
-        self.activo = not(is_okey)
+        self.activo = not is_okey
 
