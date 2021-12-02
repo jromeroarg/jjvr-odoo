@@ -44,6 +44,7 @@ class DebitBankGroup(models.Model):
 
     @api.depends('debit_bank_ids', 'date_from', 'date_to', 'journal_id')
     def post_receipt(self):
+        is_okey = True
         for rec in self.debit_bank_ids:
             # Debitos que dan error, 
             # se deben marcar, como no aplicados
@@ -55,5 +56,7 @@ class DebitBankGroup(models.Model):
                     rec.activo = False # Debito a inactivo, cuando esta rechazado
             except:
                 rec.activo = True
+                is_okey = False
         # debitos completos procesados, pasan a inactivos
-        # self.activo = False
+        self.activo = not(is_okey)
+

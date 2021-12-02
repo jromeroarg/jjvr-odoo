@@ -18,6 +18,17 @@ class DebitBank(models.Model):
     rechazo = fields.Char(string="Rechazo")
     motivo = fields.Text(string="Motivo")
     activo = fields.Boolean(string="Activo",default=True)
+    partner_id = fields.Many2one(
+        comodel_name='res.partner',
+        string="Cliente",
+        compute="_compute_res_partner_id"
+    )
+
+    @api.depends('partner_id','partida')
+    def _compute_res_partner_id(self):
+        for reg in self:
+            partida_id = reg.partida.split('.')[-1]
+            reg.partner_id = self.env['ir.model.data'].search([('model', '=', 'res.partner'),('name','=',partida_id)]).res_id
 
     @api.depends('status', 'partida', 'importe', 'fh_vencimiento', 'rechazo', 'motivo')
     def generate_receipt(self, journal_id):
