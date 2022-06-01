@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <template id="report_invoice_document_inherit" inherit_id="account.report_invoice_document">
+
+        <xpath expr="//table[@name='invoice_line_table']/tbody[@class='invoice_tbody']/t/tr/t/td[@class='text-right o_price_total']" position="replace">
+            <td class="text-right o_price_total">
+                <span t-esc="'$'" t-field-options="{'groups': ['account.group_show_line_subtotals_tax_excluded', 'account.group_show_line_subtotals_tax_included']}"/>
+                <span t-field="line.price_subtotal" groups="account.group_show_line_subtotals_tax_excluded" t-options="{'widget': 'float', 'precision': 2}"/>
+                <span t-field="line.price_total" groups="account.group_show_line_subtotals_tax_included" t-options="{'widget': 'float', 'precision': 2}"/>
+            </td>
+        </xpath>
+        
+        <xpath expr="//td[@class='text-right']/span[@t-field='o.amount_untaxed']" position="replace">
+            <span t-esc="'$'"/>
+            <span t-field="o.amount_untaxed" t-options="{'widget': 'float', 'precision': 2}"/>
+        </xpath>
+
+        <xpath expr="//t[@t-foreach='o.amount_by_group']/tr/t[1]/td[@class='text-right o_price_total']/span[@t-esc='amount_by_group[3]']" position="replace">
+            <span class="text-nowrap" t-esc="'$ '+('{0:,.2f}'.format(float(amount_by_group[3].split(' ')[-1].replace(',', '.'))).replace(',', ' ').replace('.', ',').replace(' ', '.'))"/>
+        </xpath>
+        
+        <xpath expr="//td[@class='text-right']/span[@t-field='o.amount_total']" position="replace">
+            <span t-esc="'$'"/>
+            <span class="text-nowrap" t-field="o.amount_total" t-options="{'widget': 'float', 'precision': 2}"/>
+        </xpath>
+
+    </template>
+</odoo>
