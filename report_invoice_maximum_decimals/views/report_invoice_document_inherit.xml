@@ -16,7 +16,8 @@
         </xpath>
 
         <xpath expr="//t[@t-foreach='o.amount_by_group']/tr/t[1]/td[@class='text-right o_price_total']/span[@t-esc='amount_by_group[3]']" position="replace">
-            <span class="text-nowrap" t-esc="'$ '+('{0:,.2f}'.format(float(amount_by_group[3].split(' ')[-1].replace(',', '.'))).replace(',', ' ').replace('.', ',').replace(' ', '.'))"/>
+            <!-- <span class="text-nowrap" t-esc="'$ '+('{0:,.2f}'.format(float(amount_by_group[3].split(' ')[-1].replace(',', '.'))).replace(',', ' ').replace('.', ',').replace(' ', '.'))"/> -->
+            <span class="text-nowrap" t-esc="'$ '+('{0:,.2f}'.format(float(amount_by_group[3].split(' ')[-1].replace('.', '').replace(',', '.'))).replace(',', ' ').replace('.', ',').replace(' ', '.'))"/>
         </xpath>
         
         <xpath expr="//td[@class='text-right']/span[@t-field='o.amount_total']" position="replace">
