@@ -16,5 +16,5 @@ class DebitBankResPartner(models.Model):
     def _compute_statement_vat_lines(self):
         res_obj = self.env['ir.model.data'].search([('model', '=', 'res.partner'),('res_id','=',self.id)])
         for rec in self:
-            rec.debit_bank_ids = self.env['debit.bank'].search([('partida','=',res_obj.name)])
+            rec.debit_bank_ids = self.env['debit.bank'].search([('partida','like',res_obj.name)])
 
